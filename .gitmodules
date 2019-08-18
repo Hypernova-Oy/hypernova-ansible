@@ -1,3 +1,7 @@
 [submodule "inventory"]
 	path = inventory
 	url = git@git.hypernova.fi:hypernova/hypernova-ansible-inventory.git
+
+[submodule "roles/mitogen"]
+	path = roles/mitogen
+	url = git@github.com:Hypernova-Oy/ansible-role-mitogen.git
