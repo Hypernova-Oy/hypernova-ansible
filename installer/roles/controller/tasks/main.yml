@@ -1,0 +1,81 @@
+- name: Install Python
+  raw: /usr/bin/apt -qqq -y install python
+  register: result
+  changed_when: result.stdout|trim != ''
+  become: yes
+
+- name: Install needed Debian packages
+  apt:
+    name: [
+      'python-pip'
+    ]
+    state: present
+  become: yes
+
+- name: Install Ansible
+  pip:
+    name: [
+      'ansible'
+    ]
+    state: present
+  become: yes
+
+- name: Create ansible user
+  user:
+    name: "{{ controller_ansible_user }}"
+    groups: sudo
+    generate_ssh_key: yes
+  become: yes
+
+- name: "Read Ansible user's public key"
+  slurp:
+    src: "/home/{{ controller_ansible_user }}/.ssh/id_rsa.pub"
+  register: controller_ssh_pub_key
+
+- block:
+    - name: Clone hypernova-ansible repository
+      git:
+        repo: "{{ controller_playbook_repo }}"
+        dest: "{{ controller_hypernova_ansible_path }}"
+        accept_hostkey: yes
+        track_submodules: true
+      become: yes
+      become_user: "{{ controller_ansible_user }}"
+      register: git_result
+      changed_when: "git_result.after|default('after') != git_result.before|default('before')"
+  rescue:
+    - pause:
+        prompt: |-
+          To recover, allow read access to Ansible Git repositories for key:
+
+          You probably want to add it here:
+          https://git.hypernova.fi/hypernova/hypernova-ansible-inventory/settings/repository#js-deploy-keys-settings
+
+          {{ controller_ssh_pub_key['content'] | b64decode }}
+          Press enter when done
+    - name: Finish cloning hypernova-ansible-repository
+      git:
+        repo: "{{ controller_playbook_repo }}"
+        dest: "{{ controller_hypernova_ansible_path }}"
+        track_submodules: true
+      become: yes
+      become_user: "{{ controller_ansible_user }}"
+      register: git_result
+      changed_when: "git_result.after|default('after') != git_result.before|default('before')"
+
+- name: Create Ansible Config dir
+  file:
+    path: "{{ controller_ansible_config_dir }}"
+    state: directory
+    group: "{{ controller_ansible_user }}"
+    owner: "{{ controller_ansible_user }}"
+  become: yes
+
+- name: Create Ansible vault password file
+  template:
+    src: "passwd.j2"
+    dest: "{{ controller_ansible_passwd_path }}"
+    mode: 0640
+    group: "{{ controller_ansible_user }}"
+    owner: "{{ controller_ansible_user }}"
+  become: yes
