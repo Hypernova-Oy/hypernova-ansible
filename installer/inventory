@@ -1,0 +1,4 @@
+hypernova_ansible_controller ansible_host=localhost ansible_connection=local
+
+[controllers]
+hypernova_ansible_controller

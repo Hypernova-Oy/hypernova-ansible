@@ -1,0 +1,70 @@
+- name: Install Python
+  raw: /usr/bin/apt -qqq -y install python
+  register: result
+  changed_when: result.stdout|trim != ''
+  become: yes
+
+- name: Install needed Debian packages
+  apt:
+    name: [
+      'python-pip'
+    ]
+    state: present
+  become: yes
+
+- name: Install Ansible
+  pip:
+    name: [
+      'ansible'
+    ]
+    state: present
+  become: yes
+
+- name: Create ansible user
+  user:
+    name: "{{ controller_ansible_user }}"
+    groups: sudo
+    generate_ssh_key: yes
+  become: yes
+
+- name: Create Ansible Config dir
+  file:
+    path: "{{ controller_ansible_config_dir }}"
+    state: directory
+    group: "{{ controller_ansible_user }}"
+    owner: "{{ controller_ansible_user }}"
+  become: yes
+
+- name: Create Ansible vault password file
+  template:
+    src: "passwd.j2"
+    dest: "{{ controller_ansible_passwd_path }}"
+    mode: 0640
+    group: "{{ controller_ansible_user }}"
+    owner: "{{ controller_ansible_user }}"
+  when: controller_vault_password != "" and
+        lookup('file', controller_ansible_passwd_path) != controller_vault_password
+  become: yes
+
+- name: Git clone controller
+  include_tasks: git.yml
+  vars:
+    task_name:
+    installer_ssh_key_name: id_rsa
+    installer_git_repository_url: "{{ controller_repo }}"
+    installer_git_dest_path: "{{ controller_hypernova_ansible_path }}"
+
+- name: Git clone inventories
+  include_tasks: git.yml
+  vars:
+    task_name:
+    installer_ssh_key_name: id_rsa_inventory
+    installer_git_repository_url: "{{ controller_inventory_repo }}"
+    installer_git_dest_path: "{{ controller_hypernova_ansible_path }}/inventory"
+
+- name: Git clone playbooks
+  include_tasks: git.yml
+  vars:
+    installer_ssh_key_name: id_rsa_playbook
+    installer_git_repository_url: "{{ controller_playbook_repo }}"
+    installer_git_dest_path: "{{ controller_hypernova_ansible_path }}/playbook"

@@ -1,0 +1,50 @@
+- name: Check existence of SSH key
+  stat:
+    path: "/home/{{ controller_ansible_user }}/.ssh/{{ installer_ssh_key_name }}"
+  register: installer_ssh_key_exists
+
+- name: Generate required deploy key
+  shell: cat /dev/zero | ssh-keygen -t rsa -q -N "" -f "/home/{{ controller_ansible_user }}/.ssh/{{ installer_ssh_key_name }}"
+  args: creates "/home/{{ controller_ansible_user }}/.ssh/{{ installer_ssh_key_name }}.pub"
+  when: installer_ssh_key_exists.stat.exists == False
+
+- name: Read Ansible user's ssh key
+  slurp:
+    src: "/home/{{ controller_ansible_user }}/.ssh/{{ installer_ssh_key_name }}.pub"
+  register: controller_installer_ssh_key
+
+- block:
+    - name: Clone repository
+      git:
+        repo: "{{ installer_git_repository_url }}"
+        dest: "{{ installer_git_dest_path }}"
+        key_file: "/home/{{ controller_ansible_user }}/.ssh/{{ installer_ssh_key_name }}"
+        accept_hostkey: yes
+        track_submodules: true
+      become: yes
+      become_user: "{{ controller_ansible_user }}"
+      register: git_result
+      changed_when: "git_result.after|default('after') != git_result.before|default('before')"
+  rescue:
+    - fail: msg="{{ git_result.msg }}"
+      when: git_result.stderr is not defined or git_result.stderr is defined and git_result.stderr is not search('Permission denied')
+
+    - pause:
+        prompt: |-
+          This repository seems to be private.
+
+          You must provide the following SSH key an access to this repository
+
+          {{ controller_installer_ssh_key['content'] | b64decode }}
+
+          Press enter when done
+
+    - name: Finish cloning repository
+      git:
+        repo: "{{ installer_git_repository_url }}"
+        dest: "{{ installer_git_dest_path }}"
+        track_submodules: true
+      become: yes
+      become_user: "{{ controller_ansible_user }}"
+      register: git_result
+      changed_when: "git_result.after|default('after') != git_result.before|default('before')"

@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: no
+  vars_prompt:
+    - name: "controller_vault_password"
+      prompt: "Enter your Ansible vault password or press ENTER to skip"
+      private: yes
+
+  roles:
+    - role: controller

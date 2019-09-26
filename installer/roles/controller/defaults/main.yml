@@ -1,0 +1,7 @@
+controller_ansible_config_dir: /etc/ansible
+controller_ansible_passwd_path: "{{ controller_ansible_config_dir }}/hypernova-ansible-passwd"
+controller_hypernova_ansible_path: "/home/{{ controller_ansible_user }}/hypernova-ansible"
+controller_ansible_user: ansible
+controller_repo: "https://github.com/Hypernova-Oy/hypernova-ansible.git"
+controller_inventory_repo: "git@git.hypernova.fi:hypernova/hypernova-ansible-inventory.git"
+controller_playbook_repo: "git@git.hypernova.fi:hypernova/hypernova-ansible-playbook.git"
