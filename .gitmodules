@@ -1,3 +1,6 @@
 [submodule "roles/mitogen"]
 	path = roles/mitogen
 	url = git@github.com:Hypernova-Oy/ansible-role-mitogen.git
+[submodule "roles/katkola"]
+	path = roles/katkola
+	url = git@github.com:Hypernova-Oy/ansible-role-katkola.git
